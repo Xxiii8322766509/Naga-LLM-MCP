@@ -1,0 +1,21 @@
+[project]
+name = "naga-agent"
+version = "2.0.0"
+description = "Naga Agent with MCP service integration"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp>=1.5.0",
+    "openai>=1.68.2",
+    "python-dotenv>=1.1.0",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.3",
+    "asyncio>=3.4.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120 
