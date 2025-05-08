@@ -3,6 +3,9 @@ import os
 from pathlib import Path
 from datetime import datetime
 
+#流式交互
+VOICE_ENABLED = False # 或True，按你需求
+
 # 路径与基础配置
 BASE_DIR = Path(__file__).parent # 项目根目录
 LOG_DIR = BASE_DIR / "logs"
@@ -14,7 +17,7 @@ HNSW_M = 48 # HNSW参数
 PQ_M = 16 # PQ分段数
 
 # API与服务配置
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", " ")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "  ")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 MCP_SERVICES = {
@@ -73,6 +76,3 @@ if not BROWSER_PATH:
 if not BROWSER_PATH:raise RuntimeError('未检测到谷歌浏览器，请先安装Google Chrome！')
 
 PLAYWRIGHT_HEADLESS=False # Playwright浏览器是否无头模式，False弹窗便于调试
-
-# OpenAI配置
-OPENAI_API_KEY="" #OpenAI API密钥，用于语音服务

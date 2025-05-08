@@ -8,9 +8,12 @@ from pydantic import BaseModel, TypeAdapter
 from dataclasses import dataclass
 import json
 from datetime import datetime
+import importlib,os,inspect # 自动注册相关
+from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcpserver.mcp_registry import MCP_REGISTRY # MCP服务注册表
 
 from config import MCP_SERVICES, DEBUG, LOG_LEVEL
 
@@ -376,4 +379,7 @@ class MCPManager:
             logger.info("MCP服务连接清理完成")
         except Exception as e:
             logger.error(f"清理MCP服务连接时出错: {str(e)}")
-            import traceback;traceback.print_exc(file=sys.stderr) 
+            import traceback;traceback.print_exc(file=sys.stderr)
+
+    def get_mcp(self, name): return MCP_REGISTRY.get(name) # 获取MCP服务
+    def list_mcps(self): return list(MCP_REGISTRY.keys()) # 列出所有MCP服务 

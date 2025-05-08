@@ -1,7 +1,7 @@
 import logging,os,asyncio # 日志与系统
 from datetime import datetime # 时间
 from config import LOG_DIR,DEEPSEEK_API_KEY,DEEPSEEK_MODEL,TEMPERATURE,MAX_TOKENS,get_current_datetime,THEME_ROOTS,DEEPSEEK_BASE_URL,NAGA_SYSTEM_PROMPT,VOICE_ENABLED # 配置
-from summer_faiss import faiss_recall,faiss_add # faiss检索与入库
+from summer_faiss import faiss_recall,faiss_add,faiss_recall_by_theme,faiss_fuzzy_recall # faiss检索与入库
 from mcp_manager import MCPManager, remove_tools_filter, HandoffInputData # 多功能管理
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX # handoff提示词
 from mcpserver.agent_playwright_master import PlaywrightAgent, extract_url # 导入浏览器相关类
@@ -145,8 +145,11 @@ class NagaConversation: # 对话主类
    
    if u.strip()=="#devmode":s.dev_mode=True;return "已进入开发者模式，后续对话不写入向量库"
    
-   recall=faiss_recall(u,3)
+   recall=faiss_recall_by_theme(u,theme,3)
    if hasattr(recall,'result'):recall=recall.result()
+   if not recall:
+    recall=faiss_fuzzy_recall(u,3)
+    if hasattr(recall,'result'):recall=recall.result()
    ctx='\n'.join([f"[历史][{c['time']}][{c['role']}]:{c['text']}"for c in recall]) if recall else ''
    
    # 添加handoff提示词

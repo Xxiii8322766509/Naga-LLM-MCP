@@ -1,4 +1,4 @@
-# NagaAgent 2.0
+# NagaAgent 2.1
 
 > 智能对话助手，支持多MCP服务、流式语音交互、主题树检索、极致精简代码风格。
 
@@ -14,6 +14,7 @@
    ```
    - 自动创建虚拟环境并安装依赖
    - 检查/下载中文向量模型
+   - 配置支持toolcall的LLM，推荐DeepSeekV3
 3. 启动
    ```powershell
    .\start.bat
@@ -49,7 +50,7 @@
 - 支持语音输入（流式识别，自动转文字）与语音输出（流式合成，边播边出）
 - 启用方法：
   1. 编辑`voice/voice_config.py`，将`ENABLED=True`
-  2. `config.py`配置`OPENAI_API_KEY`
+  2. `config.py`配置`DEEPSEEK_API_KEY`
   3. 运行主程序，空输入自动语音识别，AI回复自动语音播报
 - 依赖：`sounddevice`、`soundfile`、`pyaudio`、`openai`等
 - 语音配置参数：
@@ -96,6 +97,12 @@
   ```
 - Handoff机制：主Agent只分发任务，具体操作由子Agent完成
 
+### 🚀 全自动化热插件注册
+- 所有MCP服务代码放在`mcpserver/`目录，类名以`Agent`或`Tool`结尾，系统自动扫描注册，无需手动import。
+- 新增/删除MCP服务只需增删py文件，**即插即用、热插拔**，无需重启主程序。
+- 注册表见`mcpserver/mcp_registry.py`，全局自动管理。
+- **只有`__init__`无参数（可无参实例化）的Agent/Tool类会被自动注册，带参数的类会自动跳过。**
+
 ## 📚 目录结构
 ```
 2.0/
@@ -128,4 +135,14 @@ MIT License
 ---
 
 如需详细功能/API/扩展说明，见各模块注释与代码，所有变量唯一、注释中文、极致精简。
+
+## 聊天窗口自定义
+1. 聊天窗口背景透明度由`config.BG_ALPHA`统一控制，取值0~1，默认0.4。
+2. 用户名自动识别电脑名，变量`config.USER_NAME`，如需自定义可直接修改该变量。
+
+## 智能历史召回机制
+1. 默认按主题分片检索历史，极快且相关性高。
+2. 若分片查不到，自动兜底遍历所有主题分片模糊检索（faiss_fuzzy_recall），话题跳跃也能召回历史。
+3. faiss_fuzzy_recall支持直接调用，返回全局最相关历史。
+4. 兜底逻辑已集成主流程，无需手动切换。
 

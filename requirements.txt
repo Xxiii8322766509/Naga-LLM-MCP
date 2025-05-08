@@ -38,3 +38,5 @@ openai>=1.12.0
 sounddevice>=0.4.6
 soundfile>=0.12.1
 pyaudio>=0.2.14
+tk==0.1.0
+pyqt5==5.15.11

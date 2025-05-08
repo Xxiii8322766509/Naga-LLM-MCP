@@ -1,12 +1,11 @@
 import asyncio,openai,sounddevice as sd,numpy as np,logging
 from voice.voice_config import config as vcfg
-from config import Config as cfg
 
 logger=logging.getLogger("VoiceHandler")
 
 class VoiceHandler:
     def __init__(s):
-        s.client=openai.AsyncOpenAI(api_key=cfg.OPENAI_API_KEY)
+        s.client=openai.AsyncOpenAI(api_key=vcfg.OPENAI_API_KEY)
         s._audio_queue=asyncio.Queue()
         s._stop_recording=asyncio.Event()
         s._stream=None

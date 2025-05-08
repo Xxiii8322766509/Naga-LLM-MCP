@@ -103,4 +103,36 @@ def faiss_recall_by_theme(q,theme,k=3):
   json.dump(m,open(mfile,'w',encoding='utf-8'),ensure_ascii=0,indent=1)
   log_retrieve(q,theme,len(res),[c['key'] for c in res])
   return sorted(res,key=lambda x:(-m.get(x['key'],{}).get('weight',1)))
- return executor.submit(_recall_theme,q,theme,k) 
+ return executor.submit(_recall_theme,q,theme,k)
+
+def faiss_fuzzy_recall(q,k=3):
+ def _fuzzy(q,k):
+  v=Emb().enc([q])
+  res=[]
+  for f in os.listdir(faiss_dir):
+   if not f.endswith('.index'):continue
+   idx=os.path.join(faiss_dir,f)
+   mfile=idx.replace('.index','_meta.json')
+   if not os.path.exists(mfile):continue
+   fidx=FIndex();fidx.load(idx)
+   D,I=fidx.search(v,k)
+   try:m=json.load(open(mfile,encoding='utf-8'))
+   except:m={}
+   chunks=[]
+   for key in m:
+    for fn in os.listdir(LOG_DIR):
+     if not fn.endswith('.txt'):continue
+     with open(f'{LOG_DIR}/{fn}',encoding='utf-8')as r:
+      t=None
+      for l in r:
+       if l.strip().startswith('时间:'):t=l.split(':',1)[1].strip()
+       for role in['用户','user','娜迦','ai']:
+        if l.strip().startswith(f'{role}:'):
+         txt=l.split(':',1)[1].strip()
+         ck=hashlib.md5(f'{fn}_{t}_{role}_{txt}'.encode()).hexdigest()
+         if ck==key:chunks+=[{'role':'user'if'用户'in role else'ai','text':txt,'time':t,'file':fn,'key':ck}]
+   for i in I[0]:
+    if i>=0 and i<len(chunks) and D[0][list(I[0]).index(i)]>=SIM_THRESHOLD:
+     res+=[chunks[i]]
+  return sorted(res,key=lambda x:-x.get('weight',1))[:k]
+ return executor.submit(_fuzzy,q,k) 
