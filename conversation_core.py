@@ -144,7 +144,7 @@ class NagaConversation: # 对话主类
         return error_msg
    
    if u.strip()=="#devmode":s.dev_mode=True;return "已进入开发者模式，后续对话不写入向量库"
-   
+   theme=None
    recall=faiss_recall_by_theme(u,theme,3)
    if hasattr(recall,'result'):recall=recall.result()
    if not recall:
