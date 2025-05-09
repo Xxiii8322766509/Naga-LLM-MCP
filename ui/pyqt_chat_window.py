@@ -1,13 +1,16 @@
 import sys, os; sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + '/..'))
 import sys, datetime
-from PyQt5.QtWidgets import QApplication, QWidget, QTextEdit, QSizePolicy, QGraphicsBlurEffect, QHBoxLayout, QLabel, QVBoxLayout, QStackedLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QTextEdit, QSizePolicy, QGraphicsBlurEffect, QHBoxLayout, QLabel, QVBoxLayout, QStackedLayout, QPushButton
 from PyQt5.QtCore import Qt, QRect, QThread, pyqtSignal
 from PyQt5.QtGui import QColor, QPainter, QBrush, QFont, QPixmap
 from conversation_core import NagaConversation
 import asyncio
 import os
-BG_ALPHA=0.4 # 聊天背景透明度40%
+BG_ALPHA=0.7 # 聊天背景透明度40%
 USER_NAME=os.getenv('COMPUTERNAME')or os.getenv('USERNAME')or'用户' # 自动识别电脑名
+MAC_BTN_SIZE=36 # mac圆按钮直径扩大1.5倍
+MAC_BTN_MARGIN=16 # 右侧边距
+MAC_BTN_GAP=12 # 按钮间距
 
 class TitleBar(QWidget):
     def __init__(s, text, parent=None):
@@ -16,11 +19,31 @@ class TitleBar(QWidget):
         s.setFixedHeight(100)
         s.setAttribute(Qt.WA_TranslucentBackground)
         s._offset = None
+        # mac风格按钮
+        for i,(txt,color,hover,cb) in enumerate([
+            ('-','#FFBD2E','#ffe084',lambda:s.parent().showMinimized()),
+            ('⛶','#28C940','#6cf7a6',lambda:s.toggle_max()),
+            ('×','#FF5F57','#ff8783',lambda:s.parent().close())]):
+            btn=QPushButton(txt,s)
+            btn.setGeometry(s.width()-MAC_BTN_MARGIN-MAC_BTN_SIZE*(3-i)-MAC_BTN_GAP*(2-i),36,MAC_BTN_SIZE,MAC_BTN_SIZE)
+            btn.setStyleSheet(f"QPushButton{{background:{color};border:none;border-radius:{MAC_BTN_SIZE//2}px;color:#fff;font:18pt;}}QPushButton:hover{{background:{hover};}}")
+            btn.clicked.connect(cb)
+            setattr(s,f'btn_{"min max close".split()[i]}',btn)
+        s._is_max=0
+    def toggle_max(s):
+        p=s.parent()
+        if s._is_max:
+            p.setFixedSize(1800,1400)
+        else:
+            r=QApplication.desktop().availableGeometry()
+            p.setGeometry(r)
+        s._is_max^=1
     def mousePressEvent(s, e):
         if e.button()==Qt.LeftButton: s._offset = e.globalPos()-s.parent().frameGeometry().topLeft()
     def mouseMoveEvent(s, e):
         if s._offset and e.buttons()&Qt.LeftButton:
             s.parent().move(e.globalPos()-s._offset)
+    def mouseReleaseEvent(s,e):s._offset=None
     def paintEvent(s, e):
         qp = QPainter(s)
         qp.setRenderHint(QPainter.Antialiasing)
@@ -36,6 +59,9 @@ class TitleBar(QWidget):
             qp.drawText(rect.translated(dx,dy), Qt.AlignCenter, s.text)
         qp.setPen(QColor(255,255,255))
         qp.drawText(rect, Qt.AlignCenter, s.text)
+    def resizeEvent(s,e):
+        x=s.width()-MAC_BTN_MARGIN
+        for i,btn in enumerate([s.btn_min,s.btn_max,s.btn_close]):btn.move(x-MAC_BTN_SIZE*(3-i)-MAC_BTN_GAP*(2-i),36)
 
 class Worker(QThread):
     finished=pyqtSignal(str)
@@ -76,22 +102,24 @@ class ChatWindow(QWidget):
         gap=QWidget(s);gap.setFixedWidth(30);gap.setStyleSheet("background:transparent;")
         main.addWidget(gap)
         # 侧栏
-        side=QWidget(s);side.setStyleSheet(f"background:rgba(17,17,17,{int(BG_ALPHA*255)});border-radius:24px;")
-        side.setMinimumWidth(200);side.setMaximumWidth(600)
-        stack=QStackedLayout(side);stack.setContentsMargins(0,0,0,0)
-        s.img=QLabel(side)
+        s.side=QWidget(s);s.side.setStyleSheet(f"background:rgba(17,17,17,{int(BG_ALPHA*255)});border-radius:24px;")
+        s.side.setMinimumWidth(400);s.side.setMaximumWidth(400) # 固定400像素
+        s.side.enterEvent=lambda e:s.side.setStyleSheet("background:transparent;border-radius:24px;")
+        s.side.leaveEvent=lambda e:s.side.setStyleSheet(f"background:rgba(17,17,17,{int(BG_ALPHA*255)});border-radius:24px;")
+        stack=QStackedLayout(s.side);stack.setContentsMargins(0,0,0,0)
+        s.img=QLabel(s.side)
         s.img.setSizePolicy(QSizePolicy.Ignored,QSizePolicy.Ignored)
         s.img.setAlignment(Qt.AlignCenter)
         s.img.setMinimumSize(1,1)
         s.img.setMaximumSize(16777215,16777215)
         s.img.setStyleSheet('background:transparent;')
         stack.addWidget(s.img)
-        nick=QLabel("● 娜迦2.0",side)
+        nick=QLabel("● 娜迦2.0",s.side)
         nick.setStyleSheet("color:#fff;font:18pt 'Consolas';background:rgba(0,0,0,0.5);padding:12px 0 12px 0;border-radius:12px;")
         nick.setAlignment(Qt.AlignHCenter|Qt.AlignTop)
         nick.setAttribute(Qt.WA_TransparentForMouseEvents)
         stack.addWidget(nick)
-        main.addWidget(side,1)
+        main.addWidget(s.side,1)
         s.nick=nick
         s.naga=NagaConversation()
         s.worker=None
@@ -133,7 +161,26 @@ class ChatWindow(QWidget):
             s.worker=Worker(s.naga,u)
             s.worker.finished.connect(lambda a:s.add_user_message("娜迦",a))
             s.worker.start()
+    def toggle_full_img(s,e):
+        s.full_img^=1 # 只切换缩放方式，不再改变宽度
+        h=s.height()
+        s.side.setMinimumHeight(h);s.side.setMaximumHeight(h)
+        if s.full_img:
+            s.side.setStyleSheet("background:transparent;border-radius:24px;")
+            s.side.enterEvent=s.side.leaveEvent=lambda e:None
+        else:
+            s.side.setStyleSheet(f"background:rgba(17,17,17,{int(BG_ALPHA*255)});border-radius:24px;")
+            s.side.enterEvent=lambda e:s.side.setStyleSheet("background:transparent;border-radius:24px;")
+            s.side.leaveEvent=lambda e:s.side.setStyleSheet(f"background:rgba(17,17,17,{int(BG_ALPHA*255)});border-radius:24px;")
+        p=os.path.join(os.path.dirname(__file__),'standby.png')
+        q=QPixmap(p)
+        s.img.setPixmap(q.scaled(s.side.width(),s.side.height(),Qt.KeepAspectRatio if s.full_img else Qt.KeepAspectRatioByExpanding,Qt.SmoothTransformation))
 
+if __name__=="__main__":
+    app = QApplication(sys.argv)
+    win = ChatWindow()
+    win.show()
+    sys.exit(app.exec_()) 
 if __name__=="__main__":
     app = QApplication(sys.argv)
     win = ChatWindow()
