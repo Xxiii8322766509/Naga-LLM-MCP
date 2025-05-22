@@ -153,7 +153,7 @@ class ChatWindow(QWidget):
         return False
     def add_user_message(s, name, content):
         # 支持多行换行显示，将\n替换为<br>，用富文本格式
-        s.text.setTextFormat(Qt.RichText) # 设置为富文本
+        #s.text.setTextFormat(Qt.RichText) # ~~设置为富文本~~（冗余代码，启用会导致进程崩溃）
         content_html = str(content).replace('\n', '<br>')
         s.text.append(f"<span style='color:#fff;font-size:12pt;font-family:Lucida Console;'>{name}</span>")
         s.text.append(f"<span style='color:#fff;font-size:16pt;font-family:Lucida Console;'>{content_html}</span>")
